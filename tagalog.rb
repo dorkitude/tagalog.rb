@@ -33,6 +33,9 @@ class Tagalog
     }
   }
   
+  @@writer = nil
+  @@time_format = nil
+  
   # @param message - mixed - something that can be cast as a string
   # @param tagging - mixed - a tag symbol or an array of tag symbols
   # @return boolean - whether or not logging occurred
@@ -44,7 +47,7 @@ class Tagalog
     
     message = self.format_message message
     
-    time_string = Time.now.strftime("%Y-%m-%d @ %H:%M:%S")
+    time_string = Time.now.strftime(@@time_format || "%Y-%m-%d @ %H:%M:%S")
     
     return_me = false
     
@@ -79,18 +82,59 @@ class Tagalog
   
 
   def self.write_message message
-    path = @@config[:log_file_path]
+    if @@writer
+      return @@writer.call(message)
+    else
+      path = @@config[:log_file_path]
 
-    # turn absolute paths into relative ones
-    if path[0,1] != '/'
-      path = File.dirname(__FILE__) + '/' + path
+      # turn absolute paths into relative ones
+      if path[0,1] != '/'
+        path = File.dirname(__FILE__) + '/' + path
+      end
+      
+      open(path, 'a') { |f|
+        f.puts message
+      }
     end
-    
-    open(path, 'a') { |f|
-      f.puts message
-    }
+
   end # /self.write_message
+
+  #
+  # This takes a Method as its parameters, which it will call upon writing
+  # rather than the standard write_method actions.  Good for distributed
+  # platforms like Heroku
+  #
+  # Example:
+  #
+  # class TagalogWriter
+  #    def self.writer(message)
+  #      puts message
+  #    end
+  #  end
+  # 
+  #  Tagalog.set_writer(TagalogWriter.method(:writer))
+  #
+  #
+  def self.set_writer(closure)
+    if closure.kind_of? Method
+      @@writer = closure 
+    else
+      raise TagalogException, "Writer must be a Methods"
+    end
+  end # /self.set_writer
+
+  def self.set_time_format(format)
+    @@time_format = format
+  end
+
   
+  def self.config=(config)
+    @@config = config
+  end
+  
+  def self.config
+    @@config
+  end
 
   def self.get_loggable_tags(tagging)
     if tagging.class == Symbol
@@ -105,15 +149,6 @@ class Tagalog
 
     return tags
   end # /self.get_loggable_tags
-  
-  def self.config=(config)
-    @@config = config
-  end
-  
-  def self.config
-    @@config
-  end
-
 end  # /class Tagalog
 
 
