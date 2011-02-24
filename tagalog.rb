@@ -57,20 +57,20 @@ class Tagalog
     message = self.format_message message
     return_me = false
     for tag in loggable_tags
-      this_message = @@config[:message_format]
-      this_message.gsub!(/\$(T|D|M)/) do |match|
+      this_message = @@config[:message_format].to_s
+      this_message = this_message.gsub(/\$(T|D|M)/) do |match|
         string = ''
         case match
         when '$D'
           string = Time.now.strftime(@@config[:date_format])
         when '$T'
-          string = tagging
+          string = tag
         when '$M'
           string = message
         end
         string
       end
-      
+
       self.write_message this_message
       
       return_me = true
@@ -129,7 +129,7 @@ class Tagalog
     if closure.is_a? Method
       @@writer = closure 
     else
-      raise TagalogException, "Writer must be a Methods"
+      raise TagalogException, "Writer must be a Method"
     end
   end # /self.set_writer
 
