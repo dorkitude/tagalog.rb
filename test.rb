@@ -1,4 +1,4 @@
-require 'ruby/tagalog.rb'
+require 'tagalog.rb'
 
 
 # test array of tags
