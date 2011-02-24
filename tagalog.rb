@@ -16,7 +16,7 @@ class Tagalog
   @@config = {
     # this path can be relative or absolute
     :log_file_path => "/var/log/tagalog.log",
-    
+
     # set this to true if you want ALL logging turned off:
     :kill_switch => false,
 
@@ -27,7 +27,7 @@ class Tagalog
       :tag_3 => true,
       :off => false,
       :force => true,
-      
+
       # the default tag:
       :untagged => true, # this one is special
     }
@@ -35,7 +35,7 @@ class Tagalog
   
   @@writer = nil
   @@time_format = nil
-  
+
   # @param message - mixed - something that can be cast as a string
   # @param tagging - mixed - a tag symbol or an array of tag symbols
   # @return boolean - whether or not logging occurred
@@ -56,21 +56,20 @@ class Tagalog
       self.write_message this_message
       return_me = true
     end
-    
+
     return_me
   end # /self.log
-  
+
   def self.format_message message
     
-    if message.class == Hash || message.class == Array || message.class == Symbol
+    if message.is_a?(Hash) || message.is_a?(Array) || message.is_a?(Symbol)
       message
-    elsif message.class == String
+    elsif message.is_a?(String)
       message
     else
       raise TagalogException, "Message must be a hash, array, symbol, or string. You sent " + message.class.to_s
     end
   end # /self.format_message
-  
 
   def self.write_message message
     if @@writer
@@ -108,7 +107,7 @@ class Tagalog
   # end
   #
   def self.set_writer(closure)
-    if closure.kind_of? Method
+    if closure.is_a? Method
       @@writer = closure 
     else
       raise TagalogException, "Writer must be a Methods"
@@ -129,10 +128,10 @@ class Tagalog
   end
 
   def self.get_loggable_tags(tagging)
-    if tagging.class == Symbol
+    if tagging.is_a? Symbol
       tags = []
       tags = [tagging] unless @@config[:tags].has_key?(tagging) && !@@config[:tags][tagging]
-    elsif tagging.class == Array
+    elsif tagging.is_a? Array
       # filter out any tags that are set to false in the config
       tags = tagging.select {|tag| !(@@config[:tags].has_key?(tag) && !@@config[:tags][tag] )}
     else
