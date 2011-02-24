@@ -67,16 +67,7 @@ class Tagalog
     elsif message.class == String
       message
     else
-      raise TagalogException, "Message must be a hash, array, symbol, or string."
-     # TODO: In the Exception message, tell me what class I sent.
-     # When I get off this plane, I will need to ask a rubyist why this doesn't work:
-       # raise TagalogException, "Message must be a hash, array, or string.  You sent " + message.class
-     # Especially since Why's Guide says:
-       # print 5.class                        # prints 'Integer'
-       # print 'wishing for antlers'.class    # prints 'String'
-       # print WishMaker.new.class            # prints 'WishMaker'
-    # Or, considering this is a flight from SFO to Chicago, I could ask the flight attendants to request the attention of a rubyist
-       
+      raise TagalogException, "Message must be a hash, array, symbol, or string. You sent " + message.class.to_s
     end
   end # /self.format_message
   
