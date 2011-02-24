@@ -16,9 +16,19 @@ class Tagalog
   @@config = {
     # this path can be relative or absolute
     :log_file_path => "/var/log/tagalog.log",
-    
+
     # set this to true if you want ALL logging turned off:
     :kill_switch => false,
+
+    # set this to the desired time format string
+    :date_format => "%Y-%m-%d @ %H:%M:%S",
+
+    # set this to the desired message format, where
+    #
+    # $D = date
+    # $T = tag
+    # $M = message
+    :message_format => "$D [ $T ] $M",
 
     # turn logging on and off here for various tags:
     :tags =>  {
@@ -27,12 +37,14 @@ class Tagalog
       :tag_3 => true,
       :off => false,
       :force => true,
-      
+
       # the default tag:
       :untagged => true, # this one is special
     }
   }
   
+  @@writer = nil
+
   # @param message - mixed - something that can be cast as a string
   # @param tagging - mixed - a tag symbol or an array of tag symbols
   # @return boolean - whether or not logging occurred
@@ -43,60 +55,97 @@ class Tagalog
     return false if loggable_tags.empty?
     
     message = self.format_message message
-    
-    time_string = Time.now.strftime("%Y-%m-%d @ %H:%M:%S")
-    
     return_me = false
-    
     for tag in loggable_tags
-      this_message = "#{time_string} [ #{tag} ]  #{message}"
+      this_message = @@config[:message_format]
+      this_message.gsub!(/\$(T|D|M)/) do |match|
+        string = ''
+        case match
+        when '$D'
+          string = Time.now.strftime(@@config[:date_format])
+        when '$T'
+          string = tagging
+        when '$M'
+          string = message
+        end
+        string
+      end
+      
       self.write_message this_message
+      
       return_me = true
     end
-    
+
     return_me
   end # /self.log
-  
+
   def self.format_message message
     
-    if message.class == Hash || message.class == Array || message.class == Symbol
+    if message.is_a?(Hash) || message.is_a?(Array) || message.is_a?(Symbol)
       message
-    elsif message.class == String
+    elsif message.is_a?(String)
       message
     else
-      raise TagalogException, "Message must be a hash, array, symbol, or string."
-     # TODO: In the Exception message, tell me what class I sent.
-     # When I get off this plane, I will need to ask a rubyist why this doesn't work:
-       # raise TagalogException, "Message must be a hash, array, or string.  You sent " + message.class
-     # Especially since Why's Guide says:
-       # print 5.class                        # prints 'Integer'
-       # print 'wishing for antlers'.class    # prints 'String'
-       # print WishMaker.new.class            # prints 'WishMaker'
-    # Or, considering this is a flight from SFO to Chicago, I could ask the flight attendants to request the attention of a rubyist
-       
+      raise TagalogException, "Message must be a hash, array, symbol, or string. You sent " + message.class.to_s
     end
   end # /self.format_message
-  
 
   def self.write_message message
-    path = @@config[:log_file_path]
+    if @@writer
+      return @@writer.call(message)
+    else
+      path = @@config[:log_file_path]
 
-    # turn absolute paths into relative ones
-    if path[0,1] != '/'
-      path = File.dirname(__FILE__) + '/' + path
+      # turn absolute paths into relative ones
+      if path[0,1] != '/'
+        path = File.dirname(__FILE__) + '/' + path
+      end
+      
+      open(path, 'a') { |f|
+        f.puts message
+      }
     end
-    
-    open(path, 'a') { |f|
-      f.puts message
-    }
+
   end # /self.write_message
-  
+
+  #
+  # This takes a Method as its parameters, which it will call upon writing
+  # rather than the standard write_method actions.  Good for distributed
+  # platforms like Heroku
+  #
+  # Example:
+  #
+  # class TagalogWriters
+  #    def self.heroku_writer(message)
+  #      puts message
+  #    end
+  #  end
+  # 
+  # configure :production do
+  #   Tagalog.set_writer(TagalogWriters.method(:heroku_writer))
+  # end
+  #
+  def self.set_writer(closure)
+    if closure.is_a? Method
+      @@writer = closure 
+    else
+      raise TagalogException, "Writer must be a Methods"
+    end
+  end # /self.set_writer
+
+  def self.config=(config)
+    @@config = config
+  end
+
+  def self.config
+    @@config
+  end
 
   def self.get_loggable_tags(tagging)
-    if tagging.class == Symbol
+    if tagging.is_a? Symbol
       tags = []
       tags = [tagging] unless @@config[:tags].has_key?(tagging) && !@@config[:tags][tagging]
-    elsif tagging.class == Array
+    elsif tagging.is_a? Array
       # filter out any tags that are set to false in the config
       tags = tagging.select {|tag| !(@@config[:tags].has_key?(tag) && !@@config[:tags][tag] )}
     else
@@ -105,9 +154,7 @@ class Tagalog
 
     return tags
   end # /self.get_loggable_tags
-  
 end  # /class Tagalog
-
 
 class TagalogException < Exception
   # pass
