@@ -106,6 +106,14 @@ class Tagalog
     return tags
   end # /self.get_loggable_tags
   
+  def self.config=(config)
+    @@config = config
+  end
+  
+  def self.config
+    @@config
+  end
+
 end  # /class Tagalog
 
 
