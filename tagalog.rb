@@ -20,6 +20,16 @@ class Tagalog
     # set this to true if you want ALL logging turned off:
     :kill_switch => false,
 
+    # set this to the desired time format string
+    :date_format => "%Y-%m-%d @ %H:%M:%S",
+
+    # set this to the desired message format, where
+    #
+    # $D = date
+    # $T = tag
+    # $M = message
+    :message_format => "$D [ $T ] $M",
+
     # turn logging on and off here for various tags:
     :tags =>  {
       :tag_1 => true,
@@ -34,7 +44,6 @@ class Tagalog
   }
   
   @@writer = nil
-  @@time_format = nil
 
   # @param message - mixed - something that can be cast as a string
   # @param tagging - mixed - a tag symbol or an array of tag symbols
@@ -46,14 +55,24 @@ class Tagalog
     return false if loggable_tags.empty?
     
     message = self.format_message message
-    
-    time_string = Time.now.strftime(@@time_format || "%Y-%m-%d @ %H:%M:%S")
-    
     return_me = false
-    
     for tag in loggable_tags
-      this_message = "#{time_string} [ #{tag} ]  #{message}"
+      this_message = @@config[:message_format]
+      this_message.gsub!(/\$(T|D|M)/) do |match|
+        string = ''
+        case match
+        when '$D'
+          string = Time.now.strftime(@@config[:date_format])
+        when '$T'
+          string = tagging
+        when '$M'
+          string = message
+        end
+        string
+      end
+      
       self.write_message this_message
+      
       return_me = true
     end
 
@@ -114,15 +133,10 @@ class Tagalog
     end
   end # /self.set_writer
 
-  def self.set_time_format(format)
-    @@time_format = format
-  end
-
-  
   def self.config=(config)
     @@config = config
   end
-  
+
   def self.config
     @@config
   end
