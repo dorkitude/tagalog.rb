@@ -70,6 +70,7 @@ class Tagalog
         end
         string
       end
+
       self.write_message this_message
       
       return_me = true
