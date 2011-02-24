@@ -106,14 +106,15 @@ class Tagalog
   #
   # Example:
   #
-  # class TagalogWriter
-  #    def self.writer(message)
+  # class TagalogWriters
+  #    def self.heroku_writer(message)
   #      puts message
   #    end
   #  end
   # 
-  #  Tagalog.set_writer(TagalogWriter.method(:writer))
-  #
+  # configure :production do
+  #   Tagalog.set_writer(TagalogWriters.method(:heroku_writer))
+  # end
   #
   def self.set_writer(closure)
     if closure.kind_of? Method
@@ -150,7 +151,6 @@ class Tagalog
     return tags
   end # /self.get_loggable_tags
 end  # /class Tagalog
-
 
 class TagalogException < Exception
   # pass
